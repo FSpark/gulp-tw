@@ -2,6 +2,7 @@ const { jsHeader } = require('./wikiFile')
 const processStream = require('read-vinyl-file-stream')
 const log = require('fancy-log')
 const alreadyHasHeader = (content) => content.trim().startsWith('/*\\\n')
+const fs = require('fs')
 /** @type import('./wikiFile').moduleType[] */
 const jsModuleTypes = [
   'allfilteroperator',
@@ -39,7 +40,7 @@ const jsModuleTypes = [
  * @param {string} conf.author
  * @param {string} conf.pluginName
  */
-function javascript ({ author, pluginName }) {
+function javascript({ author, pluginName }) {
   /**
    * Iterates a stream of vinyl files
    * @param {string} content the file contents
@@ -47,7 +48,7 @@ function javascript ({ author, pluginName }) {
    * @param {any} stream the stream itself
    * @param {Function} cb the callback to continue process chain
    */
-  function iterator (content, file, stream, cb) {
+  function iterator(content, file, stream, cb) {
     /**
      * @type {string}
      */
@@ -57,17 +58,29 @@ function javascript ({ author, pluginName }) {
       log.info(`File ${relativePath} already has proper header`)
       return cb(null, content)
     }
-    const moduleType =
-      jsModuleTypes.find((moduleType) =>
-        file.basename.includes(`.${moduleType}.`)
-      ) || 'library'
-    const newContent = jsHeader({
-      author,
-      pluginName,
-      relativePath,
-      content,
-      moduleType
-    })
+    const fileName = file.path + '.meta'
+    let newContent
+    if (fs.existsSync(fileName)) {
+      const metaContent = fs.readFileSync(fileName, 'utf-8')
+      newContent = `/*\\
+${metaContent}
+\\*/
+
+${content}
+`
+    } else {
+      const moduleType =
+        jsModuleTypes.find((moduleType) =>
+          file.basename.includes(`.${moduleType}.`)
+        ) || 'library'
+      newContent = jsHeader({
+        author,
+        pluginName,
+        relativePath,
+        content,
+        moduleType
+      })
+    }
     cb(null, newContent)
   }
 

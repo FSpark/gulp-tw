@@ -1,10 +1,10 @@
 const gulp = require('gulp')
 const log = require('fancy-log')
-const Sass = require('gulp-sass')
+const Sass = require('gulp-sass')(require('sass'))
 const path = require('path')
 const { javascript } = require('./src/javascript')
+const { metaBundle } = require('./src/metaBundle')
 const { html } = require('./src/html')
-Sass.compiler = require('sass')
 const babel = require('gulp-babel')
 /**
  *
@@ -47,6 +47,8 @@ const main = ({
     javascript: `${sourceDir}/**/*.js`,
     html: `${sourceDir}/**/*.html`,
     pluginInfo: `${sourceDir}/plugin.info`,
+    originCopy: `${sourceDir}/overwrite/**/*.js`,
+    metaBundle: `${sourceDir}/**/*.json`,
     output: path.join(outputDir, author, pluginName)
   }
   const sources = {
@@ -63,7 +65,7 @@ const main = ({
         {
           root: ['./src/**'],
           alias: replaceInJs,
-          loglevel: 'silent'
+          loglevel: 'info'
         }
       ]
     ]
@@ -71,7 +73,7 @@ const main = ({
   // ==================================================
   // ====================== TASKS =====================
   // ==================================================
-  function sass () {
+  function sass() {
     return gulp
       .src(sources.sass)
       .pipe(Sass().on('error', Sass.logError))
@@ -79,11 +81,25 @@ const main = ({
       .pipe(gulp.dest(sources.output))
   }
 
-  function tiddlers () {
+  function tiddlers() {
     return gulp.src(sources.tiddlers).pipe(gulp.dest(sources.output))
   }
 
-  function js () {
+  function originCopy() {
+    return gulp.src(sources.originCopy, { base: sourceDir }).pipe(gulp.dest(sources.output))
+  }
+
+  async function js() {
+    var stripDebug = (await import('gulp-strip-debug')).default
+    return gulp
+      .src(sources.javascript)
+      .pipe(babel(babelCfg))
+      .pipe(stripDebug())
+      .pipe(javascript({ author, pluginName }))
+      .pipe(gulp.dest(sources.output))
+  }
+
+  function headerJS() {
     return gulp
       .src(sources.javascript)
       .pipe(babel(babelCfg))
@@ -91,28 +107,37 @@ const main = ({
       .pipe(gulp.dest(sources.output))
   }
 
-  function processHtml () {
+  function metaHeader() {
+    return gulp
+      .src(sources.metaBundle, { allowEmpty: true })
+      .pipe(metaBundle())
+      .pipe(gulp.dest(sources.output))
+  }
+
+  function processHtml() {
     return gulp
       .src(sources.html)
       .pipe(html({ author, pluginName }))
       .pipe(gulp.dest(sources.output))
   }
 
-  function processPluginInfo () {
+  function processPluginInfo() {
     return gulp
       .src(sources.pluginInfo)
       .pipe(pluginInfo())
       .pipe(gulp.dest(sources.output))
   }
 
-  const defaultTask = gulp.parallel(tiddlers, js, sass, processHtml, processPluginInfo)
-  const build = gulp.series(defaultTask, buildTw)
+  const defaultTask = gulp.parallel(tiddlers, js, sass, processHtml, metaHeader, processPluginInfo)
+  const devTask = gulp.parallel(tiddlers, headerJS, sass, processHtml, metaHeader, processPluginInfo)
+  const build = gulp.series(defaultTask, originCopy)
+  const buildHTML = gulp.series(defaultTask, originCopy, buildTw)
 
-  function watch () {
+  function watch() {
     return gulp.watch(
       `${sourceDir}/**`,
       { ignoreInitial: false },
-      gulp.series(defaultTask, stopAnyRunningServer, serve)
+      gulp.series(devTask, originCopy, stopAnyRunningServer, serve)
     )
   }
 
@@ -124,6 +149,7 @@ const main = ({
     javascript: js,
     processHtml,
     build,
+    buildHTML,
     default: defaultTask
   }
 }
