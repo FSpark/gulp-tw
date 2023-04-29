@@ -24,8 +24,10 @@ function runTiddlyWiki () {
  * Creates a module with functions for building and serving tiddlywiki files
  * @param {Object} config
  * @param {string} config.wikiDir path to the wiki folder to use
+ * @param {Array} [config.serveOptions] 
+ * @param {Array} [config.buildOptions] 
  */
-const main = ({ wikiDir }) => {
+const main = ({ wikiDir, serveOptions, buildOptions }) => {
   function stopAnyRunningServer (cb) {
     if (!twServer) return cb()
     twServer.close(cb)
@@ -36,7 +38,7 @@ const main = ({ wikiDir }) => {
   * @param {Function} cb callback to continue the gulp chain
   */
   function buildTw (cb) {
-    runTiddlyWiki(wikiDir, '--verbose', '--build', 'index')
+    runTiddlyWiki(wikiDir, '--verbose', '--build', ...buildOptions)
     cb()
   }
 
@@ -45,7 +47,7 @@ const main = ({ wikiDir }) => {
   * @param {Function} cb callback to continue the gulp chain
   */
   function serve (cb) {
-    runTiddlyWiki(wikiDir, '--verbose', '--server', '8087')
+    runTiddlyWiki(wikiDir, '--verbose', '--listen',  ...serveOptions)
     cb()
   }
   return {

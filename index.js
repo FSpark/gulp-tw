@@ -25,6 +25,8 @@ const babel = require('gulp-babel')
  * @param {string} [config.sourceDir] relative path to source files
  * @param {string} [config.outputDir] where the compiled plugin should be output to
  * @param {string} [config.wikiDir] a directory to use as the root for the wiki server. Should contain a tiddlywiki.info file
+ * @param {Array} [config.serveOptions] 
+ * @param {Array} [config.buildOptions] 
  */
 const main = ({
   author,
@@ -32,14 +34,16 @@ const main = ({
   sources: _sources,
   wikiDir = './',
   sourceDir = './src',
-  outputDir = './plugins'
+  outputDir = './plugins',
+  serveOptions = ['port=8087'],
+  buildOptions = ['index']
 }) => {
   const {
     serve,
     buildTw,
     stopAnyRunningServer,
     pluginInfo
-  } = require('./src/tiddlywiki')({ wikiDir })
+  } = require('./src/tiddlywiki')({ wikiDir, serveOptions, buildOptions })
   const { annotateCss } = require('./src/annotateCss')
   const defaults = {
     sass: `${sourceDir}/**/*.scss`,
