@@ -48,7 +48,7 @@
     "read-vinyl-file-stream": "^2.0.3",
     "sass": "^1.26.5",
     "through2": "^3.0.1",
-    "tiddlywiki": "^5.2.7",
+    "tiddlywiki": "^5.3.5",
     "vinyl": "^2.2.0"
   }
 }
